@@ -49,7 +49,7 @@ void ls_dir(char *dirPath) {
     closedir(dir);
 }
 
-int main(int argc, char *argv[]) {
+int main_ls_R(int argc, char *argv[]) {
 
     if (argc != 2) {
         printf("USAGE: CMD [dir] \n");
