@@ -74,7 +74,7 @@ char *convertUint32toString(u_int32_t mode, char result[]) {
     return result;
 }
 
-int main(int argc, char *argv[]) {
+int main_ls(int argc, char *argv[]) {
     //argc=2 when user indicate dir
     char *dirPath;
     DIR *dir;
@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
                        username, groupName, size,
                        s, p->d_name);
             } else {
+                closedir(dir);
                 perror("read file fail: ");
                 exit(1);
             }
