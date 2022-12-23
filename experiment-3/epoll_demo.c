@@ -91,7 +91,7 @@ int valid(char *filename) {
 char filename[512];
 
 
-int main(int ac, char *av[]) {
+int main_epoll(int ac, char *av[]) {
     struct epoll_event ev, events[MAX_EVENTS];
     char buf[2048];
     int n;
