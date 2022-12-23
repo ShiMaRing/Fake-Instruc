@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <string.h>
 
-int main() {
+int main_pwd() {
     //get current dir .
     //keep access
     //record the final path
