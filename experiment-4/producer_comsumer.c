@@ -63,7 +63,9 @@ meta *create(key_t key) {
     }
     //初始化信息
     m->h = shmat(shmid, NULL, 0);//将数据挂载到头部
+    printf("m->h: %p \n", m->h);
     m->data = (char *) (m->h + 1);//将下一个地址指向数据起始地址
+    printf("m->h+1: %p\n", m->h + 1);
 
     m->shmid = shmid;
     //获取信号量id
@@ -128,8 +130,7 @@ void get_data(meta *m, Product *buf) {
     Decrease(m->full_id);  //减少可以消费的数量，检测队列是否为空
     Decrease(m->mutex_id); //互斥锁
     //读取数据
-    memcpy(buf
-           ,m->data + m->h->consumer_p * sizeof(Product),
+    memcpy(buf, m->data + m->h->consumer_p * sizeof(Product),
            sizeof(Product));
     //更新数据
     m->h->consumer_p = (m->h->consumer_p + 1) % N;
@@ -147,7 +148,7 @@ void free_meta(meta *m) {
     free(m);
 }
 
-int main() {
+int main_consumer_producer() {
     //定义key
     key_t key = 123;
     pid_t child_pid;
@@ -159,7 +160,7 @@ int main() {
     srand((unsigned) time(NULL));
     if (child_pid == 0) {
         meta *m = get_meta(key);
-        sleep(1);//睡一会
+        sleep(1);//睡一会,让父进程开辟一下空间
         printf("start to consume \n");
         for (int i = 0; i < NUM; ++i) {
             Product p;
