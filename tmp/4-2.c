@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <semaphore.h>
+
 #include <time.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -44,7 +44,7 @@ void *consume(void *arg); //消费者消费函数
 void randomLetter(char* buf);  //随机文本生成函数
 void clearLetter(char* buf);   //文本清空函数
 
-int main(int ar, char *av[]){
+int main_4_2(int ar, char *av[]){
 	pthread_t producer[MAXP]; //生产者线程组
 	pthread_t consumer[MAXC]; //消费者线程组
 	struct product * buf;     //共享内存的指针
