@@ -92,12 +92,25 @@ int main_ls(int argc, char *argv[]) {
     if (dirPath[strlen(dirPath) - 1] != '/') {
         strcat(dirPath, "/");
     }
-    printf("%s\n", dirPath);
     //read dir info and show
     if (NULL == (dir = opendir(dirPath))) {
         perror("open dir fail");
         exit(1);
     }
+
+    int  total;
+    long previous_position = telldir(dir);
+    while (NULL != (p = readdir(dir))) {
+        strcpy(pathName, dirPath);
+        //p store info about dir
+        if (p->d_name[0] != '.') {
+            strcat(pathName, p->d_name);
+            stat(pathName, &statbuf);
+            total+=statbuf.st_blocks;
+        }
+    }
+    printf("Total:%d\n",total/2);
+    seekdir(dir, previous_position);
 
     while (NULL != (p = readdir(dir))) {
         strcpy(pathName, dirPath);

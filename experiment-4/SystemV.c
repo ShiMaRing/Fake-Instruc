@@ -19,7 +19,7 @@ struct msgform {
     char mtext[MSGSIZE];
 };
 
-int main_SystemV() {
+int main_queue() {
     int msg_qid;
     pid_t child_pid;
     int n;//指定发送数量
@@ -38,16 +38,18 @@ int main_SystemV() {
         for (n = MSGNUM; n >= 1; n--) {
             buf.mtype = n;
             for (int i = 0; i < MSGSIZE; ++i) {
-                buf.mtext[i] = 'a' + rand() % 26;//随即设置
+                buf.mtext[i] = 'a' + rand() % 26;//rand
             }
             //发送消息,忽略错误并且无阻塞
             printf("(client)send: %s , msgtype:%d\n", buf.mtext, buf.mtype);
-            msgsnd(msg_qid, &buf, MSGSIZE, MSG_NOERROR | IPC_NOWAIT);
+            msgsnd(msg_qid, &buf, MSGSIZE, MSG_NOERROR);
+            usleep(500);
         }
         exit(EXIT_SUCCESS);
     } else {
         //父进程创建消息队列
         msg_qid = msgget(MSGKEY, 0666 | IPC_CREAT);
+
         for (;;) {
             msgrcv(msg_qid, &buf, MSGSIZE, 0, 0);
             printf("(server)receive: %s , msgtype:%d\n", buf.mtext, buf.mtype);
@@ -55,6 +57,7 @@ int main_SystemV() {
                 break;
             }
         }
+        printf("(server)finish\n");
         //删除消息队列
         msgctl(msg_qid, IPC_RMID, NULL);
         exit(EXIT_SUCCESS);

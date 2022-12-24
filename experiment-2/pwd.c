@@ -10,9 +10,6 @@
 #include <string.h>
 
 int main_pwd() {
-    //get current dir .
-    //keep access
-    //record the final path
     char *result[255];
     int count = 0;
     DIR *dir;
@@ -26,7 +23,6 @@ int main_pwd() {
         if (curNodeNumber == parentNodeNumber) {
             break;
         }
-        //else attempt to get the filename
         chdir("..");
         dir = opendir(".");
         while (NULL != (p = readdir(dir))) {
@@ -37,12 +33,10 @@ int main_pwd() {
             }
         }
         closedir(dir);
-        //chdir to parent
     }
-    //reverse and print
     printf("/");
-    for (count = count - 1; count >= 0; count--) {
+    for (count = count - 1; count >= 1; count--) {
         printf("%s/", result[count]);
     }
-    return 0;
+    printf("%s\n",result[0]);
 }

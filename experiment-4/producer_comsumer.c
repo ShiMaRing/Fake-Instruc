@@ -11,9 +11,10 @@
 #include <sys/wait.h>
 
 //定义队列长度为3
-#define N 3
+#define N 4
 //生产数量
-#define NUM 10
+#define NUM 20
+//数据长度
 #define DATA_LEN 10
 
 
@@ -38,10 +39,10 @@ typedef struct head {
 typedef struct meta_data {
     head *h;         //指向数据开始处
     char *data;       // 消费队列的起始位置
-    int shmid;        //享内存id
-    int mutex_id;     //共享内存的id,表示互斥锁，保护位置信息，保护内存中的数据
-    int empty_id;     //共享内存的id,表示当前剩余消费数量，empty为0表示无法消费
-    int full_id;      //共享内存的id,表示当前剩余生产数量，full为0表示无法生产
+    int shmid;        //内存id
+    int mutex_id;     //表示互斥锁，保护位置信息，保护内存中的数据
+    int empty_id;     //表示当前剩余消费数量，empty为0表示无法消费
+    int full_id;      //表示当前剩余生产数量，full为0表示无法生产
 } meta;
 
 meta *get_meta(key_t key);
@@ -63,16 +64,13 @@ meta *create(key_t key) {
     }
     //初始化信息
     m->h = shmat(shmid, NULL, 0);//将数据挂载到头部
-    printf("m->h: %p \n", m->h);
     m->data = (char *) (m->h + 1);//将下一个地址指向数据起始地址
-    printf("m->h+1: %p\n", m->h + 1);
 
     m->shmid = shmid;
     //获取信号量id
     m->mutex_id = semget(key, 1, IPC_CREAT | 0666);
     m->empty_id = semget(key + 1, 1, IPC_CREAT | 0666);
     m->full_id = semget(key + 2, 1, IPC_CREAT | 0666);
-
     //设置初始信号量
     union semun su = {1};
     semctl(m->mutex_id, 0, SETVAL, su);
@@ -118,9 +116,8 @@ void put_data(meta *m, Product *buf) {
     memcpy(m->data + m->h->producer_p * sizeof(Product),
            buf,
            sizeof(Product));
+    m->h->producer_p = (m->h->producer_p + 1) % N;    //更新位置
 
-    //更新位置
-    m->h->producer_p = (m->h->producer_p + 1) % N;
     Add(m->full_id);  //增加产品数量
     Add(m->mutex_id); //解锁
 }
@@ -148,7 +145,7 @@ void free_meta(meta *m) {
     free(m);
 }
 
-int main_consumer_producer() {
+int main_consume() {
     //定义key
     key_t key = 123;
     pid_t child_pid;
@@ -161,12 +158,21 @@ int main_consumer_producer() {
     if (child_pid == 0) {
         meta *m = get_meta(key);
         sleep(1);//睡一会,让父进程开辟一下空间
-        printf("start to consume \n");
         for (int i = 0; i < NUM; ++i) {
             Product p;
             get_data(m, &p);
+
+            int empty_num=semctl(m->empty_id,0,GETVAL);
+            if(empty_num==N){
+                printf("queue is empty!\n");
+            }
+            int full_num=semctl(m->full_id,0,GETVAL);
+            if(full_num==N){
+                printf("queue is full!\n");
+            }
+
             printf("(consume) id:%d  data:%s \n", p.id, p.data);
-            sleep(1);
+            usleep(1000);
         }
         exit(0);
     } else {
@@ -177,9 +183,21 @@ int main_consumer_producer() {
             for (int j = 0; j < DATA_LEN; ++j) {
                 p.data[j] = rand() % 26 + 'a';
             }
+
+            int empty_num=semctl(m->empty_id,0,GETVAL);
+            if(empty_num==N){
+                printf("queue is empty!\n");
+            }
+
+            int full_num=semctl(m->full_id,0,GETVAL);
+            if(full_num==N){
+                printf("queue is full!\n");
+            }
             printf("(produce) id:%d  data:%s \n", p.id, p.data);
+
+
             put_data(m, &p);
-            sleep(1);
+            usleep(1000);
         }
         free_meta(m);
         int status;

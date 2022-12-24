@@ -75,7 +75,7 @@ void dir_traverse(const char *dirPath) {
             //是文件夹继续遍历
             dir_traverse(m.mtext);
         } else {
-            //发送消息,以阻塞的方式
+            //否则发送文件路径信息
             msgsnd(path_queue, &m, MSG_SIZE, 0);
         }
     }
@@ -96,7 +96,7 @@ void *output(void *arg) {
 
 }
 
-int main(int ac, char *args[]) {
+int main_match(int ac, char *args[]) {
     char keyword[64];
     int n = 0;
     int keyword_len = 0;
@@ -116,6 +116,7 @@ int main(int ac, char *args[]) {
             }
         }
     }
+    printf("keyword is: %s\n",keyword);
     //文件遍历线程
     pthread_t filepath_traverse;
     //消息输出线程
@@ -161,6 +162,12 @@ int main(int ac, char *args[]) {
             if (strcmp(m.mtext, EOF_SYMBOL) == 0) {
                 break;
             } else {
+                //如果文件名包含了关键词，就直接送入结果通道即可
+                char *pLast = strstr(m.mtext+12, keyword);
+                if (NULL != pLast) {
+                    msgsnd(result_queue, &m, MSG_SIZE, 0);
+                    continue;
+                }
                 //读取文件并进行关键字查找
                 FILE *fp = fopen(m.mtext, "r");
                 if (fp == NULL) {
@@ -168,7 +175,7 @@ int main(int ac, char *args[]) {
                     break;
                 }
                 while (fgets(buf, 128, fp)) {
-                    char *pLast = strstr(buf, keyword);
+                    pLast = strstr(buf, keyword);
                     if (NULL != pLast) {
                         fclose(fp);
                         msgsnd(result_queue, &m, MSG_SIZE, 0);

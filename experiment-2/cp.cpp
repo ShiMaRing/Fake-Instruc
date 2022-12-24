@@ -11,33 +11,41 @@ int main_cp(int argc, char *argv[]) {
     const int FAIL = -1;
     char buf[MAX_BUF_LEN];
     if (argc != 3) {
-        printf("need 3 args ,but get %d\n", argc);
+        printf("usage: cmd [src] [dst]\n");
         exit(1);
     }
     char *src = argv[1];
     char *dst = argv[2];
     if (!strcmp(src, "") || !strcmp(dst, "")) {
-        printf("get empty arg\n");
+        printf("empty arg\n");
         exit(1);
     }
     char *errMsg;
     int srcFd, dstFd;
+    int access_res;
+    if ((access_res = access(src, R_OK))) {
+        perror("access file fail");
+        exit(1);
+    }
 
-    if (FAIL == (srcFd = open(src, O_RDONLY,0644))) {
+    if (access(dst, F_OK) == 0) {
+        printf("File already exists! \n");
+        exit(1);
+    }
+
+    if (FAIL == (srcFd = open(src, O_RDONLY, 0644))) {
         sprintf(errMsg, "open src file %s fail", src);
         perror(errMsg);
         exit(1);
     }
-
-    if (FAIL == (dstFd = open(dst, O_WRONLY | O_CREAT,0644))) {
+    if (FAIL == (dstFd = open(dst, O_WRONLY | O_CREAT, 0644))) {
         sprintf(errMsg, "open  dst file %s fail", src);
         perror(errMsg);
-        close(srcFd);//close fd
-
         exit(1);
     }
+
     int n;
-    while ((n=read(srcFd, buf, MAX_BUF_LEN))>0) {
+    while ((n = read(srcFd, buf, MAX_BUF_LEN)) > 0) {
         write(dstFd, buf, n);
     }
     close(srcFd);

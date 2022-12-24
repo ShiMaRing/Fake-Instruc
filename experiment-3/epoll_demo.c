@@ -29,6 +29,11 @@ void handle_get(int fd, char path[]) {
     printf("openfile: %s \n", path);
     if ((filefd = open(path, O_RDONLY)) == -1) {
         write(fd, "HTTP/1.0 404 Not Found\r\n\r\n", 26);
+        filefd = open("404.html", O_RDONLY);
+        while ((n = read(filefd, buf, sizeof(buf))) > 0) {
+            write(fd, buf, n);
+        }
+        close(filefd);
         close(fd);
         return;
     }
@@ -48,32 +53,15 @@ void *handle_thread(void *param) {
     handle_get(p->fd, p->filename);
 }
 
-void handle_request(const int tcpfd) {
-    char cmd[512];
-    char filename[512];
-    char request[2048];
-
-    read(tcpfd, request, sizeof(request));
-    printf("request: %s \n", request);
-    sscanf(request, "%s%s", cmd, filename);
-    printf("cmd: %s, filename: %s\n", cmd, filename);
-    //validate method and url
-    if (strcmp(cmd, "GET") == 0 && valid(filename + 1) != -1) {
-        handle_get(tcpfd, filename + 1);
-    } else {
-        //handle bad_request();
-        write(tcpfd, "HTTP/1.0 400 Bad Request\r\n\r\n", 26);
-    }
-    close(tcpfd);
-}
 
 int valid(char *filename) {
+    if (strlen(filename) < 1) {
+        return -1;
+    }
     char parent_path[2] = "..";
-    for (int i = 0; i < strlen(filename) - 2; ++i) {
-        if (strncmp(filename + i, parent_path, 2) == 0) {
-            printf("invalid filename\n");
-            return -1;
-        }
+    char *p = strstr(filename, parent_path);
+    if (p != NULL) {
+        return -1;
     }
     //truncate the filename
     // /~/../xxx -> xxx
@@ -91,7 +79,7 @@ int valid(char *filename) {
 char filename[512];
 
 
-int main_epoll(int ac, char *av[]) {
+int main(int ac, char *av[]) {
     struct epoll_event ev, events[MAX_EVENTS];
     char buf[2048];
     int n;
@@ -178,7 +166,6 @@ int main_epoll(int ac, char *av[]) {
                     close(sockfd);
                     events[n].data.fd = -1;
                 }
-                printf("received data: %s\n", buf);
                 //deal with http request
                 sscanf(buf, "%s%s", cmd, filename);
                 ev.data.fd = sockfd;
@@ -199,6 +186,11 @@ int main_epoll(int ac, char *av[]) {
                     pthread_create(&t, NULL, handle_thread, &r);
                 } else {
                     write(sockfd, "HTTP/1.0 400 Bad Request\r\n\r\n", 26);
+                    int filefd = open("400.html", O_RDONLY);
+                    while ((n = read(filefd, buf, sizeof(buf))) > 0) {
+                        write(sockfd, buf, n);
+                    }
+                    close(filefd);
                     close(sockfd);
                 }
                 events[n].data.fd = -1;
